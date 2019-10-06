@@ -1,0 +1,139 @@
+
+require(tseries)
+require(forecast)
+require(MTS)
+# producer Price Index by Commodity for Farm Products: Corn / from FRED
+getSymbols("WPU012202",src="FRED")
+dim(WPU012202)
+head(WPU012202)
+tail(WPU012202)
+# Global price of Corn / from FRED
+getSymbols("PMAIZMTUSDM",src="FRED")
+dim(PMAIZMTUSDM)
+head(PMAIZMTUSDM)
+
+corn = ts(PMAIZMTUSDM$PMAIZMTUSDM,freq=12,start=1990)
+
+PPIshort = ts(WPU012202$WPU012202,freq=12,start=1971)
+PPIshort = ts(PPIshort[c(229:577)],freq=12,start=1990)
+
+dcorn = na.remove(diff(log(corn)))
+dPPI = na.remove(diff(PPIshort))
+
+
+anl = cbind(dcorn,dPPI)
+colnames(anl) = c("corn","PPI") 
+MTSplot(anl)
+
+basicStats(anl)
+
+t.test(dcorn)
+t.test(dPPI)
+plot(dcorn)
+plot(dPPI)
+
+adf.test(dcorn, alternative = c("stationary", "explosive"),
+         k = trunc((length(x)-1)^(1/3)))
+
+adf.test(dPPI, alternative = c("stationary", "explosive"),
+         k = trunc((length(x)-1)^(1/3)))
+
+auto.arima(dcorn,D=1)
+
+m1 = Arima(dcorn,order=c(1,0,0),seasonal=list(order=c(2,1,0),period=12),include.constant = TRUE)
+m1
+acf(na.omit(residuals(m1)))
+pacf(na.omit(residuals(m1)))
+tsdiag(m1,gof=12)
+checkresiduals(m1, lag=12)
+
+fcast <- forecast(m1, h=30)
+print(summary(fcast))
+plot(fcast)
+
+
+auto.arima(dPPI,D=1)
+m2 = Arima(dPPI,order=c(0,0,2),seasonal=list(order=c(2,1,0),period=12),include.constant = TRUE)
+m2
+acf(na.omit(residuals(m2)))
+pacf(na.omit(residuals(m2)))
+tsdiag(m2,gof=12)
+checkresiduals(m2, lag=12)
+
+
+fcas <- forecast(m2, h=30)
+print(summary(fcas))
+plot(fcas)
+
+
+
+
+
+
+cornshort =ts(PMAIZMTUSDM$PMAIZMTUSDM,freq=12,start=1990)
+cornshort=ts(cornshort[c(61:349)],freq=12,start=1995)
+
+
+# question 3
+
+
+f3_a<-dynlm(dcorn~L(dPPI,0:5)+L(dcorn,1:5))
+summary(f3_a)
+tsdisplay(residuals(f3_a))
+coeftest(f3_a,vcov=vcovHAC(f3_a))
+
+
+
+
+x6 = dynlm(dcorn ~ L(dPPI,c(1:6)) + L(dcorn,c(1:6)))
+a6 = AIC(x6)
+F6 = linearHypothesis(x6,c("L(dPPI, c(1:6))6=0","L(dcorn, c(1:6))6=0"),vcov=vcovHAC(x6),test="F",data=x6)
+f6p = F6$`Pr(>F)`
+
+x7 = dynlm(dcorn ~ L(dPPI,c(1:7)) + L(dcorn,c(1:7)))
+a7 = AIC(x7)
+F7 = linearHypothesis(x7,c("L(dPPI, c(1:7))7=0","L(dcorn, c(1:7))7=0"),vcov=vcovHAC(x7),test="F",data=x7)
+f7p = F7$`Pr(>F)`
+
+x4 = dynlm(dcorn ~ L(dPPI,c(1:4)) + L(dcorn,c(1:4)))
+a4 = AIC(x4)
+F4 = linearHypothesis(x4,c("L(dPPI, c(1:4))4=0","L(dcorn, c(1:4))4=0"),vcov=vcovHAC(x4),test="F",data=x4)
+f4p = F4$`Pr(>F)`
+
+x3 = dynlm(dcorn ~ L(dPPI,c(1:3)) + L(dcorn,c(1:3)))
+a3 = AIC(x3)
+F3 = linearHypothesis(x3,c("L(dPPI, c(1:3))3=0","L(dcorn, c(1:3))3=0"),vcov=vcovHAC(x3),test="F",data=x3)
+f3p = F3$`Pr(>F)`
+
+x2 = dynlm(dcorn ~ L(dPPI,c(1:2)) + L(dcorn,c(1:2)))
+a2 = AIC(x2)
+F2 = linearHypothesis(x2,c("L(dPPI, c(1:2))2=0","L(dcorn, c(1:2))2=0"),vcov=vcovHAC(x2),test="F",data=x2)
+f2p = F2$`Pr(>F)`
+
+x12 = dynlm(dcorn ~ L(dPPI,c(1:12)) + L(dcorn,c(1:12)))
+a12 = AIC(x12)
+F12 = linearHypothesis(x12,c("L(dPPI, c(1:12))12=0","L(dcorn, c(1:12))12=0"),vcov=vcovHAC(x12),test="F",data=x12)
+f12p = F12$`Pr(>F)`
+
+F.results = c(f1p,f2p,f3p,f4p,f5p,f6p)
+AIC.results = c(a1,a2,a3,a4,a5,a6)
+View(AIC.results)
+View(F.results)
+tsdisplay(residuals(x5))
+tsdisplay(residuals(x4))
+tsdisplay(residuals(x3))
+tsdisplay(residuals(x6))
+
+summary(x12)
+summary(x2)
+summary(x3)
+summary(x4)
+summary(x5)
+summary(x6)
+summary(x7)
+
+coeftest(x12,vcov=vcovHAC(x12))
+coeftest(x4,vcov=vcovHAC(x12))
+
+
+
